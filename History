@@ -1,0 +1,132 @@
+FEC History:
+
+29-Aug-97:
+
+	V0.03 released.
+
+	Compiler: Preconditions are now checked even for redeclared routines. Code for
+		the precondition of the redefined routine(s) is duplicated in the new 
+		precondtion routine.
+
+14-Aug-97:
+
+	Compiler: Require checks are now done, but do currently not work correctly for
+		redeclared routines whose previous version(s) had a precondition (in this
+		case, only the most recent assertion is checked). The preconditions are
+		checked using a statically bound call. In contrast to normal routines, all
+		unqualified calls within the precondition are done using dynamically bound
+		calls. This turned out to be rather difficult in combination with generic
+		classes, but seams to be all right now. 
+	
+	Compiler: Removed a problem causing a compiler crash when compiler class PAIR
+		posted to comp.lang.eiffel.
+
+13-Aug-97:
+
+	Compiler: Added signal handler to print detailed message on user break, 
+		segmentation fault, etc.
+
+06-Aug-97:
+
+	Compiler: If reference checking is enabled in the environment file, the 
+		compiler now creates code that performs run time checks to test for 
+		a Void target in a qualified variable attribute access and a qualified 
+		call to an internal feature. A qualified access of a constant attribute 
+		does not cause the target to be checked for Void (this is against ETL, 
+		but it makes the use of constants easier).
+
+05-Aug-97:
+
+	Compiler: Command line arguments have been replaced by an environment 
+		file. For every Eiffel system to be created, an Environment file 
+		(*.env) is required. The compiler creates a default environment file
+		when no such file is found. 
+		
+		The environment specifies things like the root class and root 
+		creation procedure, the run-time checking code to be created, the 
+		executable to be created, the paths used to search for source files, 
+		etc. 
+		
+	Compiler: The error message displayed on a failed check instruction now
+		includes a reference to the source code position of the failed
+		instruction and the tag mark given in the assertion.
+
+	STRING.e: is_equal didn't work correctly.
+
+04-Aug-97:
+
+	Compiler: Added code generation to trace calling sequence of routines. 
+		Implemented code generation for check and debug instructions.
+
+23-Jul-97: 
+
+	STRING.e: Two bugs in substring_index removed: It failed to return 0 if
+		the search failed and it was unable to find a substring that was the
+		tail of a string. Credits to Dominique Colnet for reporting the bug.
+
+22-Jul-97:
+
+	V0.02 released.
+
+	Compiler: Default initialization for expanded attributes and local 
+	   variables now works. !!x.make works for expanded x. Only drawback: 
+	   expanded attributes of the root object of a system are not 
+	   initialized correctly yet.
+
+19-Jul-97:
+
+	Compiler: "x1 := x2" for expanded variables used to be done using the
+		rather complex code sequence "!!r1; memcpy(r1,$x2,size); !!r2; 
+		r2.copy(r1); x1.copy(r2)". Now, the generated code corresponds to
+		"!!r1; memcpy(r1,$x2,size); x1.copy(r1)" if GENERAL.copy was redefined
+		in the class of x1, or just "memcpy($x1,$x2,size)" else.
+
+	Compiler: Once function now may have an expanded result.
+
+18-Jul-97:
+
+	Compiler: Translated all compiler messages to English. This was a rather
+		tedious work since the messages were scattered all through the compiler
+		source. Now they are all contained in one class and translations to new
+		languages can easily be done. Currently, their exist German and English
+		versions of all messages.
+
+15-Jul-97:
+
+	GENERAL.e, fec_lib.c: Implemented features like stripped, conforms_to, 
+		same_type and standard_is_equal.
+
+	Compiler: Implemented equality expression for expanded objects (x1=x2) 
+		using GENERAL.equal(x1,x2).
+
+13-Jul-97:
+
+	std_lib: Added HASHABLE, BOOLEAN_REF, CHARACTER_REF, DOUBLE_REF,
+		REAL_REF, INTEGER_REF and POINTER_REF. MEMORY added, but only for
+		compatibility, gc not supported yet. PLATFORM implemented.
+
+	Compiler: The addend of the relocation entry for the SETHI command
+		was always set to zero. This worked only as long as now overflow
+		occurred in the lower 10 bits during address calculation.
+
+12-Jul-97:
+
+	BOOLEAN.e: item was of type INTEGER, now it's BOOLEAN as it should 
+		be. print(false) now prints "false", not "true".
+	
+	Compiler: Manifest_arrays work now. Since the compiler itself uses
+		Manifest_arrays to print its error messages, the self-compiled 
+		version of the compiler no more crashes while trying to display
+		error messages.
+		
+	Compiler: Due to a bug in the parser, constant attributes of types 
+	   REAL and DOUBLE were always positive, even when a negative sign 
+	   was present in their declaration.
+
+07-Jul-97: 
+
+	V0.01 released.
+
+17-Jun-97: 
+
+	Compiler: FEC can compile itself.
