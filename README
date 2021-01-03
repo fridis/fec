@@ -1,0 +1,458 @@
+--------------------------------------------------------------------------------
+-- FEC V0.03 -- Native Eiffel Compiler for SUN/SPARC
+--
+--  Copyright (C) 1997 Fridtjof Siebert
+--    EMail: fridi@gr.opengroup.org
+--    SMail: Fridtjof Siebert 
+--           5b rue du 26 mai 1944
+--           38940 St. Martin le Vinoux
+--           Grenoble
+--
+--  This program is free software; you can redistribute it and/or modify
+--  it under the terms of the GNU General Public License as published by
+--  the Free Software Foundation; Version 2.
+--
+--  This program is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--  GNU General Public License for more details.
+--
+--  You should have received a copy of the GNU General Public License
+--  along with this program; if not, write to the Free Software
+--  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+--
+--------------------------------------------------------------------------------
+
+
+
+What is FEC?
+============
+
+FEC is an Eiffel-Compiler for SUN/SPARC V8 running Solaris. It implements 
+most of Eiffel V3 as defined in [Meyer92]. See below for the language 
+features that haven't been implemented in this version.
+
+FEC directly creates SPARC machine code and saves it as ELF object 
+files.
+
+
+
+Requirements: 
+=============
+
+To use FEC, the gnu C compiler gcc is required. The compiler is used 
+only as a linker to create an executable program from the object
+files of an Eiffel System.
+
+
+
+Installation:
+=============
+
+To install FEC, it is sufficient to unpack the archive file using 
+
+	> gzip -d fec0.03.tar.gz
+	> tar -xf fec0.03.tar
+	
+The archive contains the following files and directories:
+
+fec/                  The main directory
+fec/fec               The executeable of the compiler, compiled using fec
+fec/fecc              The executeable compiled using all runtime checks.
+                      (use this compiler to track down a compiler crash)
+fec/std_lib/*.e       Eiffel library classes
+fec/std_lib/fec_lib.c C-source for some basic routines used by the compiler.
+fec/obj/              This drawer is used to store the object files for
+                      classes compiled by FEC
+fec/obj/fec_lib.o     Object file containing basic routines needed by every 
+                      Eiffel System. This file was compiled using 
+                      "gcc -c -o obj/fec_lib.o std_lib/fec_lib.c".
+fec/src/*.e           Some example classes
+fec/elink             This is a script file created by fec for every project.
+                      It can be used to link a system using gcc.
+fec/fec_src/          The source of the compiler and environment-files for
+                      fec and fecc.
+
+
+
+Usage of the compiler:
+======================
+
+To use the compiler, you should first change the current directory to the
+directory containing your project (this directory must contain the sub-
+directory "obj/"). To compile one of the given example programs, go to
+the fec directory:
+
+	> cd fec 
+
+The command FEC expects one argument that specifies the name of an 
+environment file (a very simple LACE) describing your project. If such
+a file is not present, a default file is created by the compiler:
+
+	> fec hello
+	FEC -- Fridi's Eiffel Compiler V0.03 (29-Aug-97)
+	 + hello.env
+	Environment file created. Start FEC again to compile Eiffel System.
+
+The second call of fec now compiles the example system with root class
+"HELLO.e": 
+
+	> fec hello
+	FEC -- Fridi's Eiffel Compiler V0.03 (29-Aug-97)
+	 - hello.env
+	 - src/HELLO.e
+	 - std_lib/ANY.e
+	 - std_lib/GENERAL.e
+	 - std_lib/LOW_LEVEL.e
+	 - std_lib/POINTER.e
+	 - std_lib/POINTER_REF.e
+	 - std_lib/HASHABLE.e
+	 - std_lib/INTEGER.e
+	 - std_lib/INTEGER_REF.e
+	 - std_lib/NUMERIC.e
+	 - std_lib/COMPARABLE.e
+	 - std_lib/BOOLEAN.e
+	 - std_lib/BOOLEAN_REF.e
+	 - std_lib/STRING.e
+	 - std_lib/ARRAY.e
+	 - std_lib/STD_FILES.e
+	 - std_lib/CHARACTER.e
+	 - std_lib/CHARACTER_REF.e
+	 - std_lib/PLATFORM.e
+	 - std_lib/DOUBLE.e
+	 - std_lib/DOUBLE_REF.e
+	 - std_lib/REAL.e
+	 - std_lib/REAL_REF.e
+	 - std_lib/FILE.e
+	compiling:
+	 + obj/hello.o
+	 + obj/any.o
+	 + obj/integer.o
+	 + obj/general.o
+	 + obj/r#integer.o
+	 + obj/integer_ref.o
+	 + obj/character.o
+	 + obj/pointer.o
+	 + obj/boolean.o
+	 + obj/double.o
+	 + obj/low_level.o
+	 + obj/string.o
+	 + obj/array[_ref].o
+	 + obj/std_files.o
+	 + obj/numeric.o
+	 + obj/hashable.o
+	 + obj/comparable.o
+	 + obj/x#platform.o
+	 + obj/r#character.o
+	 + obj/character_ref.o
+	 + obj/r#pointer.o
+	 + obj/pointer_ref.o
+	 + obj/r#boolean.o
+	 + obj/boolean_ref.o
+	 + obj/r#double.o
+	 + obj/double_ref.o
+	 + obj/real.o
+	 + obj/r#low_level.o
+	 + obj/file.o
+	 + obj/platform.o
+	 + obj/r#real.o
+	 + obj/real_ref.o
+	 + obj/main.o
+	 + elink
+	ok.
+	132276 Bytes machinencode created.
+	
+The compiler first searches for the source text files in the directories
+given in the environment file (see below). The file names for the source 
+texts must be identical to their class names with an suffix ".e". The file 
+names must be written using either only lower case or only upper case 
+letters. The suffix ".e" must be in lower case.
+
+The compiler reads all required source texts and checks their validity. If 
+that was successful, it continues and creates object files for all classes 
+involved in the system and stores them in the "obj/" folder (if this folder
+is missing, it will not be able to create those files). The object files 
+have the names of their base classes, possibly with actual generic 
+arguments, and the suffix ".o".
+
+Finally, a main object file for the system is created and saved as 
+"obj/main.o". To ease the linking process, a script-file "elink" is 
+created. This must be executable (type "chmod 700 elink" if it isn't) and
+can now be used to link the compiled system to an executable program:
+
+	> elink
+
+Note that linking only works, if the object file "fec_lib.o" is present
+in the "obj/" subdirectory, so you have to copy this file from fec/obj/
+if you are working in a different directory. 
+
+The name given in the environment file is used as name for the
+executable program. The default environment file uses the name of the
+root class in lower case letters, so we can start the example using
+
+	> hello
+
+
+
+The Environment File
+====================
+
+Environment files are used instead of command-line arguments to describe
+all information needed by the compiler to create a system, like names of
+the root-class, loading paths, required runtime checks, etc. Environment
+files are always written entirely in lower or upper case letters, and have
+the suffix ".env" in lower case. 
+
+The default environment file created above when compiling "HELLO.e" looks
+like this:
+
+	-- Eiffel project environment:
+	
+	-- Root class for this system:
+	ROOT_CLASS hello
+	-- Root creation procedure:
+	ROOT_CREATION make
+	
+	-- Checking Mode:
+	-- Set this to one of NONE, REFERENCE, REQUIRE, ENSURE, INVARIANT, LOOP, ALL or DEBUG
+	CHECK ALL
+	
+	-- Name of executable program to create:
+	EXECUTABLE hello
+	
+	-- Load path to look for source texts:
+	LOADPATH
+	LOADPATH src/
+	LOADPATH std_lib/
+	
+	-- Either "gcc" or "cc" may be used to link the system:
+	LINKER gcc
+
+The format of the file is very simple: Lines are either empty, comments 
+(preceeded by --) or commands that begin with a keyword. The following
+commands may be specified:
+
+ROOT_CLASS <name>
+	This selects the root class of the system to be compiled
+	
+ROOT_CREATION <name>
+	Here you can specify the name of the root creation procedure to be
+	used for creating your system.
+	
+CHECK (NONE | REFERENCE | REQUIRE | ENSURE | INVARIANT | LOOP | ALL | DEBUG)
+	This selects the level of runtime checks to be used. Only one of the 
+	key words NONE, REFERENCE, etc. must be specified. The keywords given 
+	here are in order of strictness, so every keyword includes all the 
+	runtime-checks of the previous checking modes. They have the following 
+	meaing: 
+	
+	NONE       No code for runtime checks is created. 
+	REFERENCE  Reference variables are checked for Void when they are used
+	REQUIRE    Preconditions are checked.
+	ENSURE     Postconditions are checked (currently not implemented).
+	INVARIANT  Class invariants are checked (currently not implemented).
+	LOOP       Loop (in-)variants are checked (currently not implemented).
+	ALL        Code for the CHECK-instructions is created.
+	DEBUG      Code for the DEBUG-instructions is created.
+
+EXECUTABLE <name>
+	This selects the name of the executable to be created for the system.
+
+LOADPATH [<path>]
+	This keyword can be given several times to specify an arbitrary number
+	of paths the compiler uses to search for source texts. If no path
+	is given, the current directory is used as well. The paths are 
+	searched in the order given in the environment file, so if several
+	source texts for a given class exist, the one in the first path 
+	specified will be used.
+	
+LINKER <name>
+	Here you can select your favorite program to be used to create the
+	executable from the object files. This can be either "gcc" or "cc".
+	
+	
+	
+Standard Classes:
+=================
+
+As documentation for the standard classes, please refer to their source
+texts as given in "std_lib/". The standard classes should conform to the
+standard given in [ELKS95]. Many features are currently not implemented
+(they are marked in the source text with "nyi", which stands for "not yet 
+implemented"), many of the implemented features are not tested. So please
+use these classes with special care.
+
+Since FILE.e is hardly tested and lacks the implementation of many features, 
+this beta-version also includes modified versions of the file classes 
+STD_FILE, STD_FILE_READ, STD_FILE_WRITE and STD_FILE_READ_WRITE of 
+Dominique Colnet's Compiler SmallEiffel [Colnet97].
+
+The compiler relies on some of the standard classes to be exactly as they
+are. Modification in those classes may lead to unpredictable behaviour. 
+
+
+
+Sample Code: 
+============
+
+The directory "src/" contains the source texts of several example classes. 
+The root classes are:
+
+	HELLO.e        Rocking Hello-World demo
+	TEST_ALL.e     A combination of several small demos
+	HEXDUMP.e      A small program that prints a hexdump of a file given as
+	               shell argument
+
+
+
+Bug-Reports:
+============
+
+As this compiler is very new and not sufficiently tested, it might still have
+a significant number of bugs. In case you think you have encountered a 
+problem, I would be glad if you took the time to send me a detailed 
+description of the problem, so that I can easily reproduce it myself. In most
+cases, the best way to report a problem is by sending me a minimal example
+source text that produces false behaviour by the compiler.
+
+Before your report a problem to me, please check the not-yet-implemented list
+below. There is no point in reporting a problem I already know of, you would
+just waste your and my time. 
+
+Please send Bugreports via EMail to: 
+
+	fridi@gr.opengroup.org
+	Subject: BUG: ...
+
+
+
+Not-Yet-Implemented:
+====================
+
+Note that most of the features that are not implemented do not cause the
+compiler to create a warning message. Instead it jsut creates code that 
+crashes.
+
+- Incremental compilation is currently not supported.
+
+- The library classes are still incomplete and do not completely conform to
+  the ELKS standard.
+
+- Some Assertions (postconditions, invariants, variants) are not checked.
+  
+- strip, old, retry and rescue do not work
+
+- Bit types are not supported
+
+- The default initialization procedure of expanded attributes of the root 
+  object is not called automatically.
+
+- Redeclaring arguments and function results that are references to a
+  conforming expanded type is not supported. The same holds for 
+  redeclaration of INTEGER as REAL/DOUBLE and REAL as DOUBLE.
+
+- An object of an actual generic class C[Q] cannot be used through a 
+  reference of type C[P] (Q conforms to P). Assignment_attempt of
+  C[Q] to C[P] fails.
+
+- the constants listed in an inspect compoud must lie in the range of
+  -4096..4095 and the difference between two consecutive constants must
+  not be more than 4095.
+
+- Constant numeric expressions may crash the compiler (causing a division
+  by zero or an overflow)
+
+- The memory used for the type information for a system with n classes 
+  is in O(n^2). This can be reduced significantly.
+
+- The garbage-collector is not implemented.
+
+- Expception handling is not supported.
+
+- System Validity is not checked.
+
+- The compiler deserves a better name than FEC.
+
+- This list is incomplete.
+
+
+
+Thanks:
+=======
+
+Without the help of the following people, this project would not have been
+possible:
+
+Prof. Plödereder and Bernd Holzmüller accepted this project as subject for
+my final universitiy thesis. Without them, I would not have found sufficient
+time for the project.
+
+Dominique Colnet provided a good portable Eiffel compiler that I could use
+to bootstrap my compiler. I benefited a lot from the usage of SmallEiffel
+and the possibility to inspect the C code created by this compiler.
+
+Roger Browne is clearly the one who wrote the most helpful replies to Eiffel
+problems posted to comp.lang.eiffel.
+
+Achim Siebert drawing the Eiffel logo.
+
+My thanks in advance go to anybody who goes through the trouble of using
+an early beta version of a compiler and for reporting any problem with it.
+
+
+
+Anti-Thanks:
+============
+
+The following people and institutions tried hard not to be of any use in 
+my project:
+
+The IPVR at the Universitaet Stuttgart refused to allow me to use one of their 
+(unused) ISE Eiffel licenses to bootstrap my compiler.
+
+SPARC International makes it extra hard for any non-commercial developer to 
+get detailed information on their processors, unless you register as a 
+developer for 500 bucks a year... Have a look at IBM: They provide things
+like a very useful "The PowerPC Compiler Writer's Guide" that anybody
+can download for free.
+
+
+
+References:
+===========
+
+[Meyer92]    Betrand Meyer: "Eiffel: The Language", 2nd edition, 
+             Prentice Hall, 1992
+
+[ELKS95]     Nonprofit International Consortium for Eiffel (NICE): 
+             "The Eiffel Library Standard, Vintage 95", Version 8, 
+             ftp://ftp.eiffel.com, June 4, 1995
+
+[Colnet97]   Dominique Colnet and Suzanne Collin: "SmallEiffel V-0.85", 
+             ftp://ftp.loria.fr/pub/loria/genielog/SmallEiffel, 1997
+
+
+
+Updates
+=======
+
+Information on new versions will be posted in comp.lang.eiffel. If you
+do not read this newsgroup regularly, you can always find the latest 
+public version of FEC at 
+
+	http://www.informatik.uni-stuttgart.de/ifi/ps/siebert/fridi_eiffel.html
+
+
+
+Author's Address
+================
+
+Fridtjof Siebert
+5B rue du 26 mai 1944
+38950 St. Martin le Vinoux
+France
+Ph: +33.4.76.58.08.86
+EMail: fridi@gr.opengroup.org
+
+
+
