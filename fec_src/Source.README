@@ -1,0 +1,214 @@
+FEC -- Fridi's Eiffel Compiler V0.03
+(c) 1997 by Fridtjof Siebert
+
+
+
+Design of the Compiler
+======================
+
+For a detailed description of the design of the compiler and the structure 
+of the generated code, get the postscript file of my final university
+thesis. This text is currently only available in German. You can find a 
+link to the PS-File on the FEC-Page at
+
+   http://www.informatik.uni-stuttgart.de/ifi/ps/siebert/fridi_eiffel.html
+
+For those unable to read this document, I give a short overview of the 
+design here:
+
+
+
+Directories
+===========
+
+The source code files are contained in the following subdirectories: 
+
+   interface    -- Command line Interface and Messages
+   datatypes    -- abstract data structures used within the compiler
+   scanner      -- Lexical analyser
+   front        -- Parser and abstract syntax tree
+   middle       -- Intermediate representation and target-independent
+                    optimisation
+   back         -- The (SPARC-) Back-end
+
+
+
+Compilation Process
+===================
+
+The compilation process consists of three main phases: 
+
+1. First, the abstract syntax tree of all classes within the system is 
+built and the validity of each class loaded is checked. This is done by 
+building the complete closure of all classes referenced directly or 
+indirectly by the root class.
+
+2. Code is generated for every "actual class" within the system. An actual 
+class is a class with actual generic parameters. To avoid unnecessary code 
+duplication, all reference types used as actual generic parameters are 
+treated as the same type. 
+
+3. The parts of the type descriptors that are dependent on the whole system 
+are created and stored together with the startup-code in a seperate object 
+file.
+
+
+
+Interface
+=========
+
+The root class of the compiler if fec.e. It provides a simple command line 
+interface and reads the environment files to control the compilation 
+process. 
+
+Another important class that is part of the interface is messages.e. Any 
+compiler messages are defined in this class, no messages are ever 
+introduced directly into the other classes. This allows easy adaption of 
+the messages to a new environment or language. 
+
+
+
+Datatypes
+=========
+
+The classes in this directory provide abstract data types used within the 
+compiler. These are sorted and unsorted container structures like lists and 
+arrays. A special data structure PS_ARRAY (partly sorted array) provides an 
+array structure that allows efficient search and insert operations.
+
+Class MY_STRINGS provides a bijective function between INTEGER and STRING. 
+Within the compiler, most strings are converted to their corresponding 
+INTEGER value. This greatly reduces the memory needed for the strings since 
+equal strings are only stored once. Additionally, string comparisons can be 
+done using integer "=" and even "<=" and are more efficient.
+
+A SET type implements sets of positive integers that are needed in the 
+optimisation and code generation process.
+
+
+
+Scanner
+=======
+
+The scanner transforms the stream of bytes an Eiffel class consists of into 
+a stream of lexical symbols. This transformation is done by class SCANNER. 
+The lexical symbols are objects of class SCANNER_SYMBOL.
+
+Since error messages reported by the compiler usually have one or several 
+references to source code positions, each scanner symbol also carries an 
+POSITION object.
+
+The actual error reporting is done through features provided by class 
+POSITION.
+
+
+
+Front-end
+=========
+
+The parsing process generates an abstract syntax tree from the stream of 
+scanner symbols. In the abstract syntax tree, objects roughly correspond to 
+the productions in the Eiffel grammar, but many productions are joined into 
+one single node in the abstract syntax tree.
+
+The algorithm used for parsing is recursive descendance. In most cases, the 
+creation routine of a class in the abstract syntax tree is responsible for 
+parsing all the productions it represents. In those cases where parts of 
+the parsing has to be done before the corresponding production is found, 
+the parsing is done by a global routine, as eg. by routine parse_expression 
+of class PARSE_EXPRESSION. 
+
+The classes of the abstract syntax tree also have features to check their 
+own validity and to create the intermediate, where this is required.
+
+
+
+Middle-end
+===========
+
+The classes of the middle-end provide a machine-independent intermediate 
+representation of the eiffel code. This code is an abstract RISC machine 
+with an infinite number of registers and commands similar to those 
+available on today's RISC processors. 
+
+The code for one routine is of a control flow graph of basic blocks. Each 
+basic block has a list of objects of the deferred class COMMAND and a 
+BLOCK_SUCCESSORS object that describes the set of successors to that basic 
+block and the condition that choses the block to branch to. 
+
+Class COMMAND has several deferred features for life-time analysis, 
+conflict-matrix determination and code-generation. The machine independent 
+features are implemented by heirs like MIDDLE_ASSIGN_COMMAND, but the 
+code-generation features are left deferred. Many of the middle-end classes 
+are therefore deferred classes that lack the implementation of the machine 
+dependent features. This allows the textual seperation of the 
+machine-independent and the machine-dependent code while maintaining an 
+extensible object-oriented design.  
+
+The transformation of the intermediate code is done in the following 
+phases: (Brackets indicate phases that are currently not implemented, "*" 
+implements phases that are handled by the backend)
+
+- Intermediate Code generation
+
+- [Sophisticated Optimisation]
+     SSA, Value Numbering, Copy Propagation, PRE or LCM, ...
+
+- * expand Commands
+     Transform commands that cannot be implented in one instruction on the
+     target architecture into a corresponding sequence of instructions,
+     like "nand v0,v1,v2" ==> "and v0,v1,v2; xnor %g0,v2,v2".
+     
+- get_live_spans
+     determine the lifetimes of all variables
+
+- remove_assigns_to_dead
+     a simple optimisation
+     
+- get_conflict_matrix
+     find conflicting variables
+     
+- * allocated_registers
+     allocate registers of the target architecture to the virtual
+     registers of the intermediate code
+
+- * allocate_stack
+     allocate space on the stack to those variables that cannot be hold in
+     a register.
+
+- * expand2 commands
+     Add code to load and store those variables that are not hold in a
+     registers. After this pass, every command in the intermediate 
+     representation corresponds to exactly one machine code instruction.
+
+- [* instructin scheduling]
+
+- * create machine code
+     create the bit patterns corresponding to the instructions.
+     
+     
+
+Back-end
+========
+
+Most of the classes of the back-end are effective heirs to the deferred 
+classes of the middle end. They implement the missing machine-dependent 
+code generation parts. The current back-end classes are written for the 
+SPARC microprocessor and create ELF object files.
+
+The back-end even introduces some commands into the intermediate 
+representation that are specific to the target architecture, like SAVE or 
+SETHI for SPARC.
+
+The class DATATYPE_SIZES of the backend provides the sizes of the standard 
+data types and routines to determine the required alignment and padding. It 
+also provides the symbol names used in the target code. 
+
+To create a back-end for a different machine, it should be sufficient to 
+rewrite only the classes in the back directory, without redefining any of 
+the effective features inherited from the corresponding middle-end. 
+
+
+--
+Fridtjof Siebert,
+fridi@gr.opengroup.org
